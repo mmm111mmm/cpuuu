@@ -1,0 +1,13 @@
+@R0
+D=M
+@R0
+M=0
+(START)
+@END
+D;JEQ 
+@R0
+M=M+D
+D=D-1
+@START
+(END)
+0;JMP

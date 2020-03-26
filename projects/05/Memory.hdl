@@ -1,0 +1,54 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/05/Memory.hdl
+
+/**
+ * The complete address space of the Hack computer's memory,
+ * including RAM and memory-mapped I/O. 
+ * The chip facilitates read and write operations, as follows:
+ *     Read:  out(t) = Memory[address(t)](t)
+ *     Write: if load(t-1) then Memory[address(t-1)](t) = in(t-1)
+ * In words: the chip always outputs the value stored at the memory 
+ * location specified by address. If load==1, the in value is loaded 
+ * into the memory location specified by address. This value becomes 
+ * available through the out output from the next time step onward.
+ * Address space rules:
+ * Only the upper 16K+8K+1 words of the Memory chip are used. 
+ * Access to address>0x6000 is invalid. Access to any address in 
+ * the range 0x4000-0x5FFF results in accessing the screen memory 
+ * map. Access to address 0x6000 results in accessing the keyboard 
+ * memory map. The behavior in these addresses is described in the 
+ * Screen and Keyboard chip specifications given in the book.
+ */
+
+CHIP Memory {
+    IN in[16], load, address[15];
+    OUT out[16];
+
+    PARTS:
+    And(a=address[14], b=true, out=topbit);
+    And(a=address[13], b=true, out=nexttopbit);
+    Not(in=nexttopbit, out=notnexttopbit);
+    And(a=topbit, b=nexttopbit, out=iskb);
+    And(a=topbit, b=notnexttopbit, out=isscr);
+    Or(a=isscr, b=iskb, out=kborscr);
+    Not(in=kborscr, out=notkborscr);
+    And(a=load, b=notkborscr, out=loadmem);
+    And(a=load, b=isscr, out=loadscr);
+    
+    RAM16K(in=in, load=loadmem, address=address[0..13], out=outram);
+    Screen(address=address[0..12], load=loadscr, in=in, out=outscr);
+    Keyboard(out=outkb);
+
+    And16(a=outram, b[0]=notkborscr, b[1]=notkborscr, b[2]=notkborscr, b[3]=notkborscr, b[4]=notkborscr, b[5]=notkborscr, b[6]=notkborscr, b[7]=notkborscr, b[8]=notkborscr, 
+    b[9]=notkborscr, b[10]=notkborscr, b[11]=notkborscr, b[12]=notkborscr, b[13]=notkborscr, b[14]=notkborscr, b[15]=notkborscr, out=outramfinal);
+    And16(a=outscr, b[0]=isscr, b[1]=isscr, b[2]=isscr, b[3]=isscr, b[4]=isscr, b[5]=isscr, b[6]=isscr, b[7]=isscr, b[8]=isscr, 
+    b[9]=isscr, b[10]=isscr, b[11]=isscr, b[12]=isscr, b[13]=isscr, b[14]=isscr, b[15]=isscr, out=outscrfinal);
+    And16(a=outkb, b[0]=iskb, b[1]=iskb, b[2]=iskb, b[3]=iskb, b[4]=iskb, b[5]=iskb, b[6]=iskb, b[7]=iskb, b[8]=iskb, 
+    b[9]=iskb, b[10]=iskb, b[11]=iskb, b[12]=iskb, b[13]=iskb, b[14]=iskb, b[15]=iskb, out=outkbfinal);
+
+    Or16(a=outramfinal, b=outscrfinal, out=outramsrc);
+    Or16(a=outkbfinal, b=outramsrc, out=out);
+
+}
