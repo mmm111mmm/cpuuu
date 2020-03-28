@@ -100,7 +100,7 @@ file = file.filter((line, i) => {
 
 var datavalues = 16 // data values start at 16
 
-function parseAInstruction(line) {
+function parse_a_instruction(line) {
     var avalue = line.substr(1)
     // if it's a name, get it from the symbol table
     if(isNaN(parseInt(avalue[0]))) {
@@ -113,7 +113,7 @@ function parseAInstruction(line) {
     return avalue
 }
 
-function parseBInstruction(line) {
+function parse_c_instruction(line) {
   var alu
   var [command, jump] = line.split(";")
   var [loc, command] = command.trim().split("=")
@@ -132,10 +132,10 @@ function parseBInstruction(line) {
 var lines = []
 file.map(line => {
   if(line.startsWith("@")) {
-    var avalue = parseAInstruction(line)
+    var avalue = parse_a_Instruction(line)
     lines.push(avalue)
   } else {
-    var cvalue = parseBInstruction(line)
+    var cvalue = parse_c_Instruction(line)
     lines.push(cvalue)
   }
 })
