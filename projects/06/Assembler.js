@@ -1,75 +1,33 @@
-// Implementation of the assembler for the nand2tetris cpu
-// Pipe its output to create Hack files.
-
+// Implementation of the assembler for the nand2tetris cpu. Pipe its output to create Hack files.
 const fs = require("fs")
 
 // command to binary representation mapping, and symbol table
 
 var jumps = {
-  "JMP":"111",
-  "JEQ":"010",
-  "JNE":"101",
-  "JGT":"001",
-  "JGE":"011",
-  "JLT":"100",
-  "JLE":"110",
+  "JGT":"001", "JGE":"011", "JLT":"100", "JLE":"110",
+  "JEQ":"010", "JNE":"101", "JMP":"111",
 }
 
 var locs = {
-  "A":  "100",
-  "D":  "010",
-  "M":  "001",
-  "MD": "011",
-  "AM": "101",
-  "AD": "110",
-  "AMD":"111",
+  "A":  "100", "MD": "011",
+  "D":  "010", "AM": "101",
+  "M":  "001", "AD": "110",
+              "AMD": "111",
 }
 
 var alus = {
-  "0":   "101010",
-  "-1":  "111010",
-  "1":   "111111",
-  "D":   "001100",
-  "A":   "110000",
-  "!D":  "001101",
-  "!A":  "110001",
-  "D-1": "001110",
-  "A-1": "110010",
-  "D+1": "011111",
-  "A+1": "110111",
-  "-D":  "001111",
-  "-A":  "110011",
-  "D+A": "000010",
-  "D&A": "000000",
-  "D-A": "010011",
-  "A-D": "000111",
-  "D|A": "010101",
+  "0":   "101010", "-1":  "111010", "1":   "111111",
+  "D":   "001100", "A":   "110000", "!D":  "001101", "!A":  "110001", 
+  "-D":  "001111", "-A":  "110011",
+  "D-1": "001110", "A-1": "110010", "D+1": "011111", "A+1": "110111",
+  "D+A": "000010", "D-A": "010011", "A-D": "000111",
+  "D&A": "000000", "D|A": "010101",
 }
 
 var symbols = {
-  "SP":"0",
-  "LCL":"1",
-  "ARG":"2",
-  "THIS":"3",
-  "THAT":"4",
-  "SCREEN":"16384",
-  "KBD":"24576",
-  "R0":"0",
-  "R1":"1",
-  "R2":"2",
-  "R3":"3",
-  "R4":"4",
-  "R5":"5",
-  "R6":"6",
-  "R7":"7",
-  "R8":"8",
-  "R9":"9",
-  "R10":"10",
-  "R11":"11",
-  "R12":"12",
-  "R13":"13",
-  "R14":"14",
-  "R15":"15",
+  "SP":"0", "LCL":"1", "ARG":"2", "THIS":"3", "THAT":"4", "SCREEN":"16384", "KBD":"24576",
+  "R0":"0", "R1":"1", "R2":"2", "R3":"3", "R4":"4", "R5":"5", "R6":"6", "R7":"7", "R8":"8", "R9":"9",
+  "R10":"10", "R11":"11", "R12":"12", "R13":"13", "R14":"14", "R15":"15",
 }
 
 // read the source file, split into lines, remove comments
@@ -98,22 +56,20 @@ file = file.filter((line, i) => {
 
 // convert commands into binary
 
-var datavalues = 16 // data values start at 16
+var datavalues_in_ram = 16 // data values start at 16
 
-function parseAInstruction(line) {
+function parse_a_instruction(line) {
     var avalue = line.substr(1)
-    // if it's a name, get it from the symbol table
-    if(isNaN(parseInt(avalue[0]))) {
-      if(!symbols[avalue]) {
-        symbols[avalue] = datavalues++ // or it's a data value from RAM 16 onwards
+    if(isNaN(parseInt(avalue[0]))) { // if name, get from symbol table
+      if(!symbols[avalue]) { // or it's a data value from RAM 16
+        symbols[avalue] = datavalues_in_ram++ 
       }
       avalue = symbols[avalue]
     }
-    avalue = "0" + fast_decimal_2_binary(avalue).substr(1) // only 15 bits available
-    return avalue
+    return decimal_2_binary(avalue)
 }
 
-function parseBInstruction(line) {
+function parse_b_instruction(line) {
   var alu
   var [command, jump] = line.split(";")
   var [loc, command] = command.trim().split("=")
@@ -132,17 +88,17 @@ function parseBInstruction(line) {
 var lines = []
 file.map(line => {
   if(line.startsWith("@")) {
-    var avalue = parseAInstruction(line)
+    var avalue = parse_a_instruction(line)
     lines.push(avalue)
   } else {
-    var cvalue = parseBInstruction(line)
+    var cvalue = parse_b_instruction(line)
     lines.push(cvalue)
   }
 })
 
 console.log(lines.join("\n"))
 
-function fast_decimal_2_binary(num) {
+function decimal_2_binary(num) {
   var val = "0000000000000000".split("")
   var col = Math.pow(2, 16)
   for(var i = 0; i < 16; i++) {
@@ -152,32 +108,4 @@ function fast_decimal_2_binary(num) {
     col = parseInt(col / 2)
   }
   return val.join("")
-}
-
-// decimal to binary using the function from nand2tetris, for fun
-
-function decimal_2_binary(num) {
-  var halfadd = function({a, b}) {
-    a = parseInt(a); b = parseInt(b);
-    return {carry: a & b, result: a ^ b}
-  }
-  var fulladd = function({a, b, carry}) {
-    var mainresult = halfadd({a: a, b: b})
-    var carryresult = halfadd({a: mainresult.result, b: carry})
-    return {result: carryresult.result, carry: carryresult.carry | mainresult.carry}
-  }
-  var add16 = function({a, b}) {
-    var carry = 0
-    var sum = "0000000000000000".split("")
-    for(var i = a.length-1; i >= 0; i--) {
-      var {carry, result} = fulladd({a: a[i], b: b[i], carry: carry})
-      sum[i] = result
-    }
-    return sum.join("");
-  }
-  var binary = "0000000000000000"
-  for(var i = 0; i<num; i++) {
-    binary = add16({a: binary, b: "0000000000000001"})
-  }
-  return binary
 }
