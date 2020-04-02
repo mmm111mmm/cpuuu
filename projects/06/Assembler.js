@@ -69,7 +69,7 @@ function parse_a_instruction(line) {
     return decimal_2_binary(avalue)
 }
 
-function parse_b_instruction(line) {
+function parse_c_instruction(line) {
   var alu
   var [command, jump] = line.split(";")
   var [loc, command] = command.trim().split("=")
